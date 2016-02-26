@@ -4,7 +4,7 @@ go:
   - tip
 script:
   - go get -u github.com/golang/lint/golint
-  - go vet ./...
-  - test -z "$(golint ./... | tee /dev/stderr)"
-  - test -z "$(gofmt -s -l . | tee /dev/stderr)"
+  - # go vet ./...
+  - # test -z "$(golint ./... | tee /dev/stderr)"
+  - # test -z "$(gofmt -s -l . | tee /dev/stderr)"
   - go test -v ./...
