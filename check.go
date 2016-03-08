@@ -681,7 +681,7 @@ func (runner *suiteRunner) runFunc(method *methodType, kind funcKind, testName s
 	select {
 	case <-c.done:
 	case <-timeout:
-		panic(fmt.Sprintf("test timed out after %v", timeout))
+		panic(fmt.Sprintf("test timed out after %v", runner.checkTimeout))
 	}
 	return c
 }
@@ -825,7 +825,7 @@ func (runner *suiteRunner) runTest(method *methodType) *C {
 	select {
 	case <-c.done:
 	case <-timeout:
-		panic(fmt.Sprintf("test timed out after %v", timeout))
+		panic(fmt.Sprintf("test timed out after %v", runner.checkTimeout))
 	}
 	return c
 }
