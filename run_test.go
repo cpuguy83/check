@@ -421,17 +421,23 @@ func (s *RunS) TestKeepWorkDir(c *C) {
 // -----------------------------------------------------------------------
 // Verify that check timeouts panic
 
-type TimeoutSuite struct{}
+type TimeoutSuite struct{ onTimeoutRan bool }
 
 func (s *TimeoutSuite) Test(c *C) {
 	time.Sleep(10 * time.Millisecond)
 }
 
+func (s *TimeoutSuite) OnTimeout(c *C) {
+	s.onTimeoutRan = true
+}
+
 func (s *RunS) TestTimeout(c *C) {
+	suite := &TimeoutSuite{}
 	defer func() {
-		if r := recover(); r == nil {
-			c.Fatal("test did not panic")
-		}
+		r := recover()
+		c.Assert(r, Not(IsNil), Commentf("test did not panic"))
+		c.Assert(suite.onTimeoutRan, Equals, true, Commentf("on timeout callback not run"))
+		c.Assert(isTimeout(r.(error)), Equals, true)
 	}()
 
 	duration, err := time.ParseDuration("5ms")
@@ -439,16 +445,16 @@ func (s *RunS) TestTimeout(c *C) {
 		c.Fatal(err)
 	}
 	runConf := RunConf{CheckTimeout: duration}
-	Run(&TimeoutSuite{}, &runConf)
+	Run(suite, &runConf)
 }
 
 func (s *RunS) TestNoTimeout(c *C) {
+	suite := &TimeoutSuite{}
 	defer func() {
-		if r := recover(); r != nil {
-			c.Fatal("test should not panic")
-		}
+		c.Assert(recover(), IsNil, Commentf("test should not panic"))
+		c.Assert(suite.onTimeoutRan, Equals, false, Commentf("on timeout callback ran with no timeout"))
 	}()
 
 	runConf := RunConf{}
-	Run(&TimeoutSuite{}, &runConf)
+	Run(suite, &runConf)
 }
