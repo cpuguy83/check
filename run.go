@@ -23,10 +23,24 @@ func Suite(suite interface{}) interface{} {
 }
 
 // -----------------------------------------------------------------------
+// strslice implements flag.Value
+
+type strslice []string
+
+func (ss *strslice) String() string {
+	return fmt.Sprintf("%v", []string(*ss))
+}
+
+func (ss *strslice) Set(value string) error {
+	*ss = append(*ss, value)
+	return nil
+}
+
+// -----------------------------------------------------------------------
 // Public running interface.
 
 var (
-	oldFilterFlag  = flag.String("gocheck.f", "", "Regular expression selecting which tests and/or suites to run")
+	oldFilterFlag  strslice
 	oldVerboseFlag = flag.Bool("gocheck.v", false, "Verbose mode")
 	oldStreamFlag  = flag.Bool("gocheck.vv", false, "Super verbose mode (disables output caching)")
 	oldBenchFlag   = flag.Bool("gocheck.b", false, "Run benchmarks")
@@ -34,7 +48,7 @@ var (
 	oldListFlag    = flag.Bool("gocheck.list", false, "List the names of all tests that will be run")
 	oldWorkFlag    = flag.Bool("gocheck.work", false, "Display and do not remove the test working directory")
 
-	newFilterFlag  = flag.String("check.f", "", "Regular expression selecting which tests and/or suites to run")
+	newFilterFlag  strslice
 	newVerboseFlag = flag.Bool("check.v", false, "Verbose mode")
 	newStreamFlag  = flag.Bool("check.vv", false, "Super verbose mode (disables output caching)")
 	newBenchFlag   = flag.Bool("check.b", false, "Run benchmarks")
@@ -45,6 +59,11 @@ var (
 	checkTimeout   = flag.String("check.timeout", "", "Panic if test runs longer than specified duration")
 )
 
+func init() {
+	flag.Var(&oldFilterFlag, "gocheck.f", "Regular expression selecting which tests and/or suites to run")
+	flag.Var(&newFilterFlag, "check.f", "Regular expression selecting which tests and/or suites to run")
+}
+
 // TestingT runs all test suites registered with the Suite function,
 // printing results to stdout, and reporting any failures back to
 // the "testing" package.
@@ -53,8 +72,14 @@ func TestingT(testingT *testing.T) {
 	if benchTime == 1*time.Second {
 		benchTime = *oldBenchTime
 	}
+	var filters []string
+	for _, filter := range append(oldFilterFlag, newFilterFlag...) {
+		if filter != "" {
+			filters = append(filters, filter)
+		}
+	}
 	conf := &RunConf{
-		Filter:        *oldFilterFlag + *newFilterFlag,
+		Filters:       filters,
 		Verbose:       *oldVerboseFlag || *newVerboseFlag,
 		Stream:        *oldStreamFlag || *newStreamFlag,
 		Benchmark:     *oldBenchFlag || *newBenchFlag,
